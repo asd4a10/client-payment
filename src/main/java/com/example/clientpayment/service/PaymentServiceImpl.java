@@ -4,6 +4,8 @@ import com.example.clientpayment.model.PaymentRequest;
 import com.example.clientpayment.model.PaymentResponse;
 import com.example.clientpayment.repository.PaymentEntity;
 import com.example.clientpayment.repository.PaymentRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +21,10 @@ import java.util.UUID;
 public class PaymentServiceImpl implements PaymentService {
     @Autowired
     private PaymentRepository paymentRepository;
+    @Autowired
+    SendService sendService;
+
+    ObjectMapper objectMapper = new ObjectMapper();
 
     static ModelMapper modelMapper = new ModelMapper();
 
@@ -79,22 +86,30 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponse makePaymentByPaymentId(String paymentId) {
+    public PaymentResponse makePaymentByPaymentId(String paymentId) throws JsonProcessingException {
         PaymentEntity paymentEntity = paymentRepository.getPaymentEntityByPaymentId(paymentId);
+        List<PaymentResponse> payments = new ArrayList<>();
+        payments.add(modelMapper.map(paymentEntity, PaymentResponse.class));
+        sendService.send(objectMapper.writeValueAsString(payments));
         paymentEntity.setPaid(true);
         paymentRepository.save(paymentEntity);
         return modelMapper.map(paymentEntity, PaymentResponse.class);
     }
 
     @Override
-    public Page<PaymentResponse> makeAllPaymentsByClientId(String clientId, Pageable pageable) {
-        Page<PaymentEntity> paymentEntities = paymentRepository.getPaymentEntitiesByClientId(clientId, pageable);
+    public List<PaymentResponse> makeAllPaymentsByClientId(String clientId) throws JsonProcessingException {
+        List<PaymentEntity> paymentEntities = paymentRepository.getPaymentEntitiesByClientId(clientId);
+        List<PaymentResponse> paymentResponses = new ArrayList<>();
+        List<PaymentResponse> payments = new ArrayList<>();
         for (PaymentEntity entity : paymentEntities) {
             if (entity.isPaid()) continue;
+            payments.add(modelMapper.map(entity, PaymentResponse.class));
             entity.setPaid(true);
             paymentRepository.save(entity);
+            paymentResponses.add(modelMapper.map(entity, PaymentResponse.class));
         }
-        return paymentEntities.map(payment -> modelMapper.map(payment, PaymentResponse.class));
+        sendService.send(objectMapper.writeValueAsString(payments));
+        return paymentResponses;
     }
 
     @Override

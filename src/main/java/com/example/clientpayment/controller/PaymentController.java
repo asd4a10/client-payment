@@ -3,10 +3,14 @@ package com.example.clientpayment.controller;
 import com.example.clientpayment.model.PaymentRequest;
 import com.example.clientpayment.model.PaymentResponse;
 import com.example.clientpayment.service.PaymentService;
+import com.example.clientpayment.service.SendService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/payment")
@@ -20,8 +24,8 @@ public class PaymentController {
     }
 
     @PutMapping
-        public PaymentResponse updatePayment(@RequestParam String paymentId,
-                                             @RequestBody PaymentRequest paymentRequest){
+    public PaymentResponse updatePayment(@RequestParam String paymentId,
+                                         @RequestBody PaymentRequest paymentRequest) {
         paymentRequest.setPaymentId(paymentId);
         return paymentService.updatePayment(paymentRequest);
     }
@@ -54,13 +58,13 @@ public class PaymentController {
     }
 
     @PutMapping("/pay")
-    public PaymentResponse makePaymentByPaymentId(@RequestParam String paymentId){
+    public PaymentResponse makePaymentByPaymentId(@RequestParam String paymentId) throws JsonProcessingException {
         return paymentService.makePaymentByPaymentId(paymentId);
     }
 
     @PutMapping("/pay/all")
-    public Page<PaymentResponse> makeAllPaymentsByClientId(@RequestParam String clientId, Pageable pageable){
-        return paymentService.makeAllPaymentsByClientId(clientId, pageable);
+    public List<PaymentResponse> makeAllPaymentsByClientId(@RequestParam String clientId) throws JsonProcessingException {
+        return paymentService.makeAllPaymentsByClientId(clientId);
     }
 
     @GetMapping("/client/total")
